@@ -1,0 +1,6 @@
+/.env
+/app.log
+/bse_scraper.log
+/rag_system.log
+/venv3.12
+/__pycache__

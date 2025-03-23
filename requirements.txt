@@ -1,0 +1,30 @@
+# Web scraping
+requests==2.31.0
+beautifulsoup4==4.12.3
+PyPDF2==3.0.1
+
+# API and web framework
+fastapi==0.110.0
+uvicorn==0.27.1
+pydantic==2.6.1
+
+# Database
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+
+# RAG system
+# langchain==0.1.11
+# langchain-community==0.0.24
+# langchain-core==0.1.28
+chromadb==0.4.22
+sentence-transformers==2.5.0
+
+# LLM
+# ollama==0.1.6
+
+# GUI
+gradio==4.19.2
+
+# Utilities
+pandas==2.2.0
+numpy==1.26.4
