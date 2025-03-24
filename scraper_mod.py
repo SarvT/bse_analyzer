@@ -362,38 +362,43 @@ class BSEScraper:
         with self.conn.cursor() as cur:
             for update in updates:
                 try:
-                    # Check if update already exists
-                    cur.execute("SELECT id FROM stock_updates WHERE stock_code = %s AND title = %s",
-                                (self.stock_code, update.get("HEADLINE")[:100]))  # Truncate title
-                    existing = cur.fetchone()
-                    if existing:
-                        continue  # Skip duplicate
-
                     # Extract attachment filename and create full PDF link
                     attachment_name = update.get("ATTACHMENTNAME", "").strip()
                     full_pdf_link = BASE_PDF_URL + attachment_name if attachment_name else "Not available"
-
+                    
                     # Format announcement details
-                    formatted_update = {
-                        "announcement_date": update.get("NEWS_DT"),
-                        "announcement_type": update.get("NEWSSUB")[:100],  # Truncate type
-                        "summary": update.get("HEADLINE")[:250],  # Safe truncation
-                        "pdf_link": full_pdf_link
-                    }
+                    headline = update.get("HEADLINE", "")[:250]  # Safe truncation
+                    
+                    # Check if update already exists - using the same data format for check and insert
+                    cur.execute("""
+                        SELECT id FROM stock_updates 
+                        WHERE stock_code = %s AND title = %s AND submitted_date = %s
+                    """, (
+                        self.stock_code, 
+                        headline,
+                        update.get("NEWS_DT")
+                    ))
+                    
+                    existing = cur.fetchone()
+                    if existing:
+                        logger.info(f"Skipping duplicate entry: {headline}")
+                        continue  # Skip duplicate
 
                     # Insert into PostgreSQL
                     cur.execute("""
-                        INSERT INTO stock_updates (stock_code, update_type, title, summary, submitted_date, file_url)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        INSERT INTO stock_updates (stock_code, update_type, title, summary, submitted_date, file_url, raw_content)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """, (
                         self.stock_code,
-                        formatted_update["announcement_type"],
-                        formatted_update["summary"],
-                        formatted_update["summary"],
-                        formatted_update["announcement_date"],
-                        formatted_update["pdf_link"]
+                        update.get("NEWSSUB", "")[:100],  # Truncate type
+                        headline,
+                        headline,  # Using headline as summary too
+                        update.get("NEWS_DT"),
+                        full_pdf_link,
+                        Json(update)  # Store the complete raw data
                     ))
                     self.conn.commit()
+                    logger.info(f"Inserted new update: {headline}")
 
                 except Exception as e:
                     logger.error(f"Error inserting update: {e}")

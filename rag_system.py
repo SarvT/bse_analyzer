@@ -299,9 +299,9 @@ class BSEUpdatesRAG:
         """Initialize the language model"""
         try:
             os.environ["OLLAMA_CUDA"] = "1"
-            self.llm = Ollama(model="mistral", streaming=True)
+            # self.llm = Ollama(model="mistral", streaming=True)
             # self.llm = Ollama(model="llama3.1")
-            # self.llm = Ollama(model="mistral")
+            self.llm = Ollama(model="mistral")
             # self.llm = Ollama(model="llama3.1", streaming=True)
             # self.llm = Ollama(model="llama3.1", 
                             #   model_kwargs={"device": "cuda"}
@@ -684,67 +684,65 @@ class BSEUpdatesRAG:
         except Exception as e:
             logger.error(f"Error adding new updates for stock {stock_code}: {e}")
     
-    # def query(self, question, stock_code=None):
-    #     """
-    #     Query the RAG system
-        
-    #     Args:
-    #         question (str): The user's question
-    #         stock_code (str, optional): Specific stock code to filter by
-            
-    #     Returns:
-    #         str: The answer to the question
-    #     """
-    #     try:
-    #         if not self.chain:
-    #             return "Sorry, the RAG system is not fully initialized. Please try again later."
-            
-    #         # Add stock code context if provided
-    #         if stock_code:
-    #             question = f"For stock {stock_code}: {question}"
-            
-    #         # Run the chain
-    #         response = self.chain.invoke(question)
-    #         return response
-    #     except Exception as e:
-    #         logger.error(f"Error querying RAG system: {e}")
-    #         return f"Sorry, an error occurred: {str(e)}"
-    
-    def query(self, question, stock_code=None, stream=True):
+    def query(self, question, stock_code=None):
         """
-        Query the RAG system with streaming support
+        Query the RAG system
         
         Args:
             question (str): The user's question
             stock_code (str, optional): Specific stock code to filter by
-            stream (bool): Whether to stream the response
             
         Returns:
-            str: The response text
+            str: The answer to the question
         """
         try:
             if not self.chain:
                 return "Sorry, the RAG system is not fully initialized. Please try again later."
-
+            
             # Add stock code context if provided
             if stock_code:
                 question = f"For stock {stock_code}: {question}"
             
-            # Run the chain with or without streaming
-            if stream:
-                # For Gradio, we need to return the complete response
-                # We'll use a different approach for real streaming
-                response = ""
-                for chunk in self.chain.stream(question):
-                    response += chunk
-                return response
-            else:
-                # Return the complete response
-                return self.chain.invoke(question)
-                
+            # Run the chain
+            response = self.chain.invoke(question)
+            return response
         except Exception as e:
             logger.error(f"Error querying RAG system: {e}")
             return f"Sorry, an error occurred: {str(e)}"
+    
+    # def query(self, question, stock_code=None, stream=True):
+    #     """
+    #     Query the RAG system with streaming support
+        
+    #     Args:
+    #         question (str): The user's question
+    #         stock_code (str, optional): Specific stock code to filter by
+    #         stream (bool): Whether to stream the response
+            
+    #     Returns:
+    #         str: The response text
+    #     """
+    #     try:
+    #         if not self.chain:
+    #             return "Sorry, the RAG system is not fully initialized. Please try again later."
+
+    #         # Add stock code context if provided
+    #         if stock_code:
+    #             question = f"For stock {stock_code}: {question}"
+            
+    #         if stream:
+    #             response = ""
+    #             for chunk in self.chain.stream(question):
+    #                 response += chunk
+    #             return response
+    #         else:
+    #             # Return the complete response
+    #             return self.chain.invoke(question)
+                
+    #     except Exception as e:
+    #         logger.error(f"Error querying RAG system: {e}")
+    #         return f"Sorry, an error occurred: {str(e)}"
+    
     def get_available_stocks(self):
         """
         Get all available stocks in the database
