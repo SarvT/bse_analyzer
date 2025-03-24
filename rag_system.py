@@ -2,6 +2,7 @@ import os
 import logging
 from dotenv import load_dotenv
 import psycopg2
+from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -15,6 +16,8 @@ import gradio as gr
 import threading
 import time
 from datetime import datetime, timedelta
+# from langchain.chains.async_chain import AsyncChain
+
 
 load_dotenv()
 
@@ -217,7 +220,8 @@ class BSEUpdatesRAG:
             # Use faster similarity search
             docs = self.vector_store.similarity_search(
                 f"Updates for {stock_code}",
-                k=top_k * 2  # Get more results initially
+                k=top_k * 2,
+                filter={"stock_code": stock_code}
             )
             
             # Filter for diversity in memory
@@ -262,8 +266,12 @@ class BSEUpdatesRAG:
         """Initialize the embedding model"""
         try:
             # Using HuggingFace embeddings (all-MiniLM-L6-v2)
+            # self.embedding_model = HuggingFaceEmbeddings(
+            #     model_name="sentence-transformers/all-MiniLM-L6-v2",
+            #     # model_kwargs={"device": "cuda"}
+            # )
             self.embedding_model = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2",
+                model_name="sentence-transformers/paraphrase-MiniLM-L3-v2",
                 # model_kwargs={"device": "cuda"}
             )
             logger.info("Embedding model initialized successfully")
@@ -277,9 +285,14 @@ class BSEUpdatesRAG:
             # Check if persist directory exists
             if os.path.exists(self.persist_directory) and os.listdir(self.persist_directory):
                 # Load existing vector store
+                # self.vector_store = Chroma(
+                #     persist_directory=self.persist_directory,
+                #     embedding_function=self.embedding_model
+                # )
                 self.vector_store = Chroma(
                     persist_directory=self.persist_directory,
-                    embedding_function=self.embedding_model
+                    embedding_function=self.embedding_model,
+                    collection_metadata={"hnsw:space": "cosine", "hnsw:M": 16}
                 )
                 logger.info(f"Loaded existing vector store from {self.persist_directory}")
             else:
