@@ -57,7 +57,7 @@ def format_updates(updates):
     formatted = ""
     for i, update in enumerate(updates):
         if update["title"] in seen_titles:
-            continue  # Skip duplicates
+            continue
         seen_titles.add(update["title"])
 
         # Convert timestamp to readable format
@@ -68,14 +68,16 @@ def format_updates(updates):
             formatted_date = update["submitted_date"]
 
         formatted += f"### {i+1}. {update['title']}\n\n"
-        formatted += f"** Type:** `{update['update_type']}`\n"
-        formatted += f"** Date:** `{formatted_date}`\n\n"
-        formatted += f"** Summary:** {update['summary'][:250]}...\n\n"
+        formatted += f"**Type:** `{update['update_type']}`\n"
+        formatted += f"**Date:** `{formatted_date}`\n\n"
+        formatted += f"**Summary:** {update['summary'][:250]}...\n\n"
         if update.get("file_url"):
             formatted += f" [View Document]({update['file_url']})\n\n"
         formatted += "---\n\n"  
-
+    
+    print(f"Final formatted updates:\n{formatted}")  # Debugging: Check the final output
     return formatted
+
 
 
 def ask_question(stock_code, question):
@@ -90,14 +92,18 @@ def ask_question(stock_code, question):
         logger.error(f"Error in RAG query: {e}")
         return f"Sorry, an error occurred while processing your question: {str(e)}"
 
-def update_stock_info(stock_code):
-    """Update information when stock is selected"""
+def update_stock_info(stock_code, show_updates):
+    """Update information when stock is selected, with toggle to show/hide updates"""
     if not stock_code:
-        return "", "No stock selected. Please select a stock to view updates and ask questions."
-    
-    updates = get_stock_updates(stock_code)
-    formatted_updates = format_updates(updates)
-    return formatted_updates, f"Selected stock: {stock_code}. You can now ask questions about this stock's updates."
+        return gr.update(value=""), gr.update(value="No stock selected. Please select a stock to view updates and ask questions.")
+
+    updates = get_stock_updates(stock_code)  # Fetch updates from API
+    if not updates:
+        return gr.update(value=""), gr.update(value=f"Selected stock: {stock_code}. No updates available.")
+
+    formatted_updates = format_updates(updates) if show_updates else ""
+    return gr.update(value=formatted_updates), gr.update(value=f"Selected stock: {stock_code}. You can now ask questions about this stock's updates.")
+
 
 with gr.Blocks(theme=gr.themes.Soft(), title="BSE Stock Updates") as app:
     gr.Markdown("#  BSE Stock Updates Analyzer", elem_id="header")
@@ -121,6 +127,8 @@ with gr.Blocks(theme=gr.themes.Soft(), title="BSE Stock Updates") as app:
         
         with gr.Column(scale=2, min_width=500):
             status_text = gr.Markdown(" **Please select a stock to view updates**", elem_id="status")
+            # updates_display = gr.Markdown(" **No updates to display yet**", elem_id="updates")
+            toggle_updates = gr.Checkbox(label="Show Stock Updates", value=True)
             updates_display = gr.Markdown(" **No updates to display yet**", elem_id="updates")
 
     with gr.Row():
@@ -146,7 +154,9 @@ with gr.Blocks(theme=gr.themes.Soft(), title="BSE Stock Updates") as app:
     """
     
     # Set up interactions
-    stock_selector.change(update_stock_info, inputs=stock_selector, outputs=[updates_display, status_text])
+    stock_selector.change(update_stock_info, inputs=[stock_selector, toggle_updates], outputs=[updates_display, status_text])
+    toggle_updates.change(update_stock_info, inputs=[stock_selector, toggle_updates], outputs=[updates_display, status_text])
+    # stock_selector.change(update_stock_info, inputs=stock_selector, outputs=[updates_display, status_text])
     refresh_button.click(lambda: gr.update(choices=get_available_stocks()), outputs=stock_selector)
     ask_button.click(ask_question, inputs=[stock_selector, question_input], outputs=answer_output)
 
