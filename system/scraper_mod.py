@@ -18,7 +18,7 @@ import pdfplumber
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler("bse_scraper.log"), logging.StreamHandler()]
+    handlers=[logging.FileHandler("logs/bse_scraper.log"), logging.StreamHandler()]
 )
 logger = logging.getLogger("bse_scraper")
 

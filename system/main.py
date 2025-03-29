@@ -16,7 +16,7 @@ load_dotenv()
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler("main.log"), logging.StreamHandler()]
+    handlers=[logging.FileHandler("logs/main.log"), logging.StreamHandler()]
 )
 logger = logging.getLogger("main")
 

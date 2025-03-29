@@ -26,7 +26,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("rag_system.log", encoding="utf-8"), 
+        logging.FileHandler("logs/rag_system.log", encoding="utf-8"), 
         logging.StreamHandler()
     ],
 )

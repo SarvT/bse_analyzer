@@ -12,7 +12,7 @@ load_dotenv()
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler("app.log"), logging.StreamHandler()]
+    handlers=[logging.FileHandler("logs/app.log"), logging.StreamHandler()]
 )
 logger = logging.getLogger("bse_app")
 

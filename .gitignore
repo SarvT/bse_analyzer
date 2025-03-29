@@ -4,3 +4,4 @@
 /rag_system.log
 /venv3.12
 /__pycache__
+chroma_db/*
