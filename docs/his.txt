@@ -1,0 +1,1 @@
+make a rag system, the data is stored in postgres database and you will be using the chroma vector db(i guess) for the rag system, it should be able to answer the questions asked on that data. make sure it does not hallucinate

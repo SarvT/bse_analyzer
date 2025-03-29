@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <!-- Background -->
+  <rect width="800" height="500" fill="#f8f9fa" />
+  
+  <!-- Data Source -->
+  <rect x="50" y="50" width="150" height="80" rx="10" fill="#b3e5fc" stroke="#0288d1" stroke-width="2" />
+  <text x="125" y="95" font-family="Arial" font-size="14" text-anchor="middle" fill="#01579b">BSE Website</text>
+  
+  <!-- Web Scraper Module -->
+  <rect x="300" y="50" width="200" height="80" rx="10" fill="#c8e6c9" stroke="#4caf50" stroke-width="2" />
+  <text x="400" y="95" font-family="Arial" font-size="14" text-anchor="middle" fill="#1b5e20">Web Scraper Module</text>
+  
+  <!-- Database -->
+  <rect x="300" y="200" width="200" height="80" rx="10" fill="#ffecb3" stroke="#ffa000" stroke-width="2" />
+  <text x="400" y="245" font-family="Arial" font-size="14" text-anchor="middle" fill="#e65100">PostgreSQL Database</text>
+  
+  <!-- API Service -->
+  <rect x="300" y="350" width="200" height="80" rx="10" fill="#e1bee7" stroke="#8e24aa" stroke-width="2" />
+  <text x="400" y="395" font-family="Arial" font-size="14" text-anchor="middle" fill="#4a148c">API Service</text>
+  
+  <!-- RAG Application -->
+  <rect x="600" y="200" width="150" height="80" rx="10" fill="#bbdefb" stroke="#1976d2" stroke-width="2" />
+  <text x="675" y="235" font-family="Arial" font-size="14" text-anchor="middle" fill="#0d47a1">RAG System</text>
+  <text x="675" y="255" font-family="Arial" font-size="12" text-anchor="middle" fill="#0d47a1">(with Vector Store)</text>
+  
+  <!-- Frontend/UI -->
+  <rect x="600" y="350" width="150" height="80" rx="10" fill="#d7ccc8" stroke="#795548" stroke-width="2" />
+  <text x="675" y="395" font-family="Arial" font-size="14" text-anchor="middle" fill="#3e2723">Gradio Interface</text>
+  
+  <!-- Arrows -->
+  <!-- BSE to Scraper -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#546e7a" />
+    </marker>
+  </defs>
+  
+  <line x1="200" y1="90" x2="300" y2="90" stroke="#546e7a" stroke-width="2" marker-end="url(#arrowhead)" />
+  <text x="250" y="80" font-family="Arial" font-size="12" text-anchor="middle" fill="#263238">HTML</text>
+  
+  <!-- Scraper to DB -->
+  <line x1="400" y1="130" x2="400" y2="200" stroke="#546e7a" stroke-width="2" marker-end="url(#arrowhead)" />
+  <text x="420" y="165" font-family="Arial" font-size="12" text-anchor="middle" fill="#263238">Store Updates</text>
+  
+  <!-- DB to API -->
+  <line x1="400" y1="280" x2="400" y2="350" stroke="#546e7a" stroke-width="2" marker-end="url(#arrowhead)" />
+  <text x="420" y="315" font-family="Arial" font-size="12" text-anchor="middle" fill="#263238">Data Access</text>
+  
+  <!-- DB to RAG -->
+  <line x1="500" y1="240" x2="600" y2="240" stroke="#546e7a" stroke-width="2" marker-end="url(#arrowhead)" />
+  <text x="550" y="230" font-family="Arial" font-size="12" text-anchor="middle" fill="#263238">Update Data</text>
+  
+  <!-- RAG to UI -->
+  <line x1="675" y1="280" x2="675" y2="350" stroke="#546e7a" stroke-width="2" marker-end="url(#arrowhead)" />
+  <text x="695" y="315" font-family="Arial" font-size="12" text-anchor="middle" fill="#263238">Q&A</text>
+  
+  <!-- API to UI -->
+  <line x1="500" y1="390" x2="600" y2="390" stroke="#546e7a" stroke-width="2" marker-end="url(#arrowhead)" />
+  <text x="550" y="380" font-family="Arial" font-size="12" text-anchor="middle" fill="#263238">Data</text>
+</svg>
