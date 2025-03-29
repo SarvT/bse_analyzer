@@ -13,8 +13,8 @@ from psycopg2.extras import Json
 from dotenv import load_dotenv
 from urllib.parse import urljoin
 from datetime import datetime, timedelta
+import pdfplumber
 
-# Set up logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -23,8 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger("bse_scraper")
 
 load_dotenv()
-BASE_PDF_URL = "https://www.bseindia.com/xml-data/corpfiling/AttachHis/"  # Correct path for attachments
-
+BASE_PDF_URL = "https://www.bseindia.com/xml-data/corpfiling/AttachHis/"  
 class BSEScraper:
     """
     Scraper for BSE corporate filings for a specific stock
@@ -78,7 +77,8 @@ class BSEScraper:
     def fetch_stock_updates(self):
         """Fetch stock updates from the BSE API."""
         today = datetime.now().strftime("%Y%m%d")
-        one_year_ago = (datetime.now() - timedelta(days=(365*2))).strftime("%Y%m%d")
+        one_year_ago = (datetime.now() - timedelta(days=(100))).strftime("%Y%m%d")
+        # one_year_ago = (datetime.now() - timedelta(days=(365*2))).strftime("%Y%m%d")
         # print(today)
         # print(one_year_ago)
 
@@ -110,9 +110,7 @@ class BSEScraper:
             return []
     
     def _create_tables(self):
-        """Create necessary tables if they don't exist"""
         with self.conn.cursor() as cur:
-            # Create stock_updates table
             cur.execute('''
                 CREATE TABLE IF NOT EXISTS stock_updates (
                     id SERIAL PRIMARY KEY,
@@ -126,7 +124,6 @@ class BSEScraper:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     raw_content JSONB
                 );
-                
                 CREATE INDEX IF NOT EXISTS idx_stock_code ON stock_updates(stock_code);
                 CREATE INDEX IF NOT EXISTS idx_update_type ON stock_updates(update_type);
                 CREATE INDEX IF NOT EXISTS idx_submitted_date ON stock_updates(submitted_date);
@@ -260,146 +257,80 @@ class BSEScraper:
         # print("updates: ", updates)
         return updates
     
+    
     def _extract_text_from_pdf(self, pdf_url):
-        """
-        Download PDF and extract text content
-        
-        Args:
-            pdf_url (str): URL to the PDF file
-            
-        Returns:
-            str: Extracted text or None if extraction fails
-        """
         try:
-            response = requests.get(pdf_url, headers=self.headers, timeout=30)
+            headers = {"User-Agent": "Mozilla/5.0"}
+            response = requests.get(pdf_url, headers=headers, timeout=30)
+
             if response.status_code != 200:
                 logger.error(f"Failed to download PDF: {response.status_code}")
                 return None
-            
+
             with io.BytesIO(response.content) as pdf_file:
                 reader = PyPDF2.PdfReader(pdf_file)
                 text = ""
-                
-                max_pages = min(5, len(reader.pages))
-                for page_num in range(max_pages):
-                    text += reader.pages[page_num].extract_text() + "\n"
-                
-                return text
+                for page in reader.pages:
+                    extracted_text = page.extract_text()
+                    if extracted_text:
+                        text += extracted_text + "\n"
+
+                if not text.strip():
+                    with pdfplumber.open(pdf_file) as pdf:
+                        for page in pdf.pages:
+                            text += page.extract_text() or ""
+
+                return text if text.strip() else "No extractable text found in the document."
+
         except Exception as e:
             logger.error(f"Error extracting text from PDF: {e}")
-            return None
+            return "Error extracting text from PDF."
     
     def _generate_summary(self, update):
-        """
-        Generate a summary for the update based on its content
-        
-        Args:
-            update (dict): The update information
-            
-        Returns:
-            str: A generated summary
-        """
+        """Use extracted text for summary instead of generating it again in RAG."""
         text_content = None
         if update["file_url"] and update["file_type"] == "pdf":
-            text_content = self._extract_text_from_pdf(update["file_url"])
-        
-        if text_content:
-            summary = text_content[:500].strip()
-            summary = re.sub(r'\s+', ' ', summary) 
-            if len(text_content) > 500:
-                summary += "..."
-        else:
-            summary = f"Update regarding {update['update_type']}: {update['title']}"
+            text_content = self._extract_text_from_pdf(update["file_url"])  # Extract here
+
+        # Store extracted content, fallback to headline if no text is found
+        summary = text_content[:500].strip() if text_content else f"Update regarding {update['update_type']}: {update['title']}"
         
         return summary
+
     
-    # def save_updates(self, updates):
-    #     """Save updates to PostgreSQL and index in ChromaDB."""
-    #     with self.db_conn.cursor() as cur:
-    #         for update in updates:
-    #             try:
-    #                 # Check if update exists
-    #                 cur.execute("SELECT id FROM stock_updates WHERE stock_code = %s AND title = %s",
-    #                             (self.stock_code, update.get("HEADLINE")))
-    #                 existing = cur.fetchone()
-    #                 if existing:
-    #                     continue  # Skip duplicate
-
-    #                 # Insert into PostgreSQL
-    #                 cur.execute("""
-    #                     INSERT INTO stock_updates (stock_code, update_type, title, summary, submitted_date, file_url)
-    #                     VALUES (%s, %s, %s, %s, %s, %s)
-    #                 """, (
-    #                     self.stock_code,
-    #                     update.get("NEWSSUB")[:100],
-    #                     update.get("HEADLINE"),
-    #                     update.get("HEADLINE"),
-    #                     update.get("NEWS_DT"),
-    #                     update.get("PDF_LINK")
-    #                 ))
-    #                 self.db_conn.commit()
-
-    #                 # Add to ChromaDB (Vector Store)
-    #                 doc_text = f"""
-    #                 STOCK: {self.stock_code}
-    #                 UPDATE TYPE: {update.get('NEWSSUB')}
-    #                 TITLE: {update.get('HEADLINE')}
-    #                 DATE: {update.get('NEWS_DT')}
-
-    #                 SUMMARY:
-    #                 {update.get('HEADLINE')}
-
-    #                 SOURCE URL: {update.get('PDF_LINK')}
-    #                 """
-    #                 self.vector_store.add_documents([Document(page_content=doc_text)])
-
-    #             except Exception as e:
-    #                 logger.error(f"Error inserting update: {e}")
-    #                 self.db_conn.rollback()
-
     def save_updates(self, updates):
-        """Fetch real-time stock updates, format them correctly, and store in PostgreSQL."""
         with self.conn.cursor() as cur:
             for update in updates:
                 try:
-                    # Extract attachment filename and create full PDF link
                     attachment_name = update.get("ATTACHMENTNAME", "").strip()
                     full_pdf_link = BASE_PDF_URL + attachment_name if attachment_name else "Not available"
-                    
-                    # Format announcement details
-                    headline = update.get("HEADLINE", "")[:250]  # Safe truncation
-                    
-                    # Check if update already exists - using the same data format for check and insert
-                    cur.execute("""
-                        SELECT id FROM stock_updates 
-                        WHERE stock_code = %s AND title = %s AND submitted_date = %s
-                    """, (
-                        self.stock_code, 
-                        headline,
-                        update.get("NEWS_DT")
-                    ))
-                    
-                    existing = cur.fetchone()
-                    if existing:
-                        logger.info(f"Skipping duplicate entry: {headline}")
-                        continue  # Skip duplicate
 
-                    # Insert into PostgreSQL
+                    cur.execute("""
+                        SELECT 1 FROM stock_updates 
+                        WHERE stock_code = %s AND title = %s AND submitted_date = %s
+                    """, (self.stock_code, update.get("HEADLINE", ""), update.get("NEWS_DT")))
+                    
+                    if cur.fetchone():
+                        logger.info(f"Duplicate entry found for: {update.get('HEADLINE', '')[:100]}, skipping...")
+                        continue
+                    
+                    pdf_text = self._extract_text_from_pdf(full_pdf_link) if full_pdf_link != "Not available" else None
+                    summary = pdf_text if pdf_text and pdf_text.strip() else update.get("HEADLINE", "")[:500]
+
                     cur.execute("""
                         INSERT INTO stock_updates (stock_code, update_type, title, summary, submitted_date, file_url, raw_content)
                         VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """, (
                         self.stock_code,
-                        update.get("NEWSSUB", "")[:100],  # Truncate type
-                        headline,
-                        headline,  # Using headline as summary too
+                        update.get("NEWSSUB", "")[:100],
+                        update.get("HEADLINE", "")[:250],
+                        summary.encode("utf-8", "ignore").decode("utf-8"),
                         update.get("NEWS_DT"),
                         full_pdf_link,
-                        Json(update)  # Store the complete raw data
+                        Json(update)
                     ))
                     self.conn.commit()
-                    logger.info(f"Inserted new update: {headline}")
-
+                    logger.info(f"Inserted update: {update.get('HEADLINE', '')[:100]}")
                 except Exception as e:
                     logger.error(f"Error inserting update: {e}")
                     self.conn.rollback()
@@ -407,7 +338,6 @@ class BSEScraper:
 
 
     def run(self):
-        """Run the scraper."""
         updates = self.fetch_stock_updates()
         if updates:
             self.save_updates(updates)
@@ -415,10 +345,10 @@ class BSEScraper:
             logger.info("No updates found.")
     
     def close(self):
-        """Close database connection."""
         if self.conn:
             self.conn.close()
             logger.info("Database connection closed")
+
 
 if __name__ == "__main__":
     import argparse

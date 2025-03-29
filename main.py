@@ -7,16 +7,26 @@ from dotenv import load_dotenv
 import uvicorn
 from api_service import app as api_app
 from scraper_mod import BSEScraper
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import sys
 
-# Load environment variables
 load_dotenv()
-# Setup logging
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.FileHandler("main.log"), logging.StreamHandler()]
 )
 logger = logging.getLogger("main")
+
+class RestartHandler(FileSystemEventHandler):
+    """Watches for file changes and restarts the script"""
+    def on_modified(self, event):
+        if event.src_path.endswith(".py"):
+            logger.info(f"Detected change in {event.src_path}. Restarting...")
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+
 
 def run_scraper(stock_code, interval):
     """Run the BSE scraper in a separate thread"""
@@ -52,8 +62,13 @@ if __name__ == "__main__":
     parser.add_argument("--api-port", type=int, default=8000, help="API server port")
     
     args = parser.parse_args()
-    
-    # Start scraper in a separate thread
+
+    # Watchdog for automatic restart
+    event_handler = RestartHandler()
+    observer = Observer()
+    observer.schedule(event_handler, path=".", recursive=True)
+    observer.start()
+
     scraper_thread = threading.Thread(
         target=run_scraper,
         args=(args.stock_code, args.interval),
@@ -62,7 +77,6 @@ if __name__ == "__main__":
     scraper_thread.start()
     logger.info(f"Started scraper for stock code: {args.stock_code}")
     
-    # Start API server in a separate thread
     api_thread = threading.Thread(
         target=run_api_server,
         args=(args.api_host, args.api_port),
@@ -71,9 +85,9 @@ if __name__ == "__main__":
     api_thread.start()
     logger.info(f"Started API server at {args.api_host}:{args.api_port}")
     
-    # Allow some time for services to start
-    time.sleep(5)
+    time.sleep(10)
     
-    # Start Gradio app in the main thread
     logger.info("Starting Gradio app...")
     run_gradio_app()
+
+    observer.join()

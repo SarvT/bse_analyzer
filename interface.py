@@ -7,10 +7,8 @@ from dotenv import load_dotenv
 from rag_system import BSEUpdatesRAG
 from datetime import date
 
-# Load environment variables
 load_dotenv()
 
-# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -18,10 +16,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("bse_app")
 
-# API base URL
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
-# Initialize RAG system
 rag_system = BSEUpdatesRAG()
 
 def get_available_stocks():
@@ -60,7 +56,6 @@ def format_updates(updates):
             continue
         seen_titles.add(update["title"])
 
-        # Convert timestamp to readable format
         try:
             date_obj = date.fromisoformat(update["submitted_date"])
             formatted_date = date_obj.strftime("%b %d, %Y %I:%M %p")
@@ -75,7 +70,7 @@ def format_updates(updates):
             formatted += f" [View Document]({update['file_url']})\n\n"
         formatted += "---\n\n"  
     
-    print(f"Final formatted updates:\n{formatted}")  # Debugging: Check the final output
+    print(f"Final formatted updates:\n{formatted}")  
     return formatted
 
 
@@ -97,7 +92,7 @@ def update_stock_info(stock_code, show_updates):
     if not stock_code:
         return gr.update(value=""), gr.update(value="No stock selected. Please select a stock to view updates and ask questions.")
 
-    updates = get_stock_updates(stock_code)  # Fetch updates from API
+    updates = get_stock_updates(stock_code)  
     if not updates:
         return gr.update(value=""), gr.update(value=f"Selected stock: {stock_code}. No updates available.")
 
